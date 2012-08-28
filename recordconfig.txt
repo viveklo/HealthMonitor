@@ -1,0 +1,6 @@
+recordduration=60
+baserecorddir=/home/fedora/remotereality/thread/recordbase
+recorddaystarttime=8
+recorddayendtime=17
+recordnightstarttime=17
+recordnightendtime=21

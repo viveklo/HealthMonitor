@@ -1,0 +1,3 @@
+camera1 vivotek 192.168.1.201 554 notset notset 2
+camera2 vivotek 192.168.1.201 554 notset notset 2
+camera3 vivotek 192.168.1.201 554 notset notset 2
