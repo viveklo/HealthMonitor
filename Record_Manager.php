@@ -17,16 +17,20 @@
 //
 
 require_once ('Thread.php');
+require_once ('util.php');
 
 function record_camera($camdetails, $recordduration, $recordir, $filestat, $filemedia) 
 {
+
+   $configarr = read_config_file("recordconfig.txt");
+   date_default_timezone_set($configarr["timezone"]);
+   $cvlcpath = $configarr["cvlcpath"];
    //construct the rtsp url
    $username = $camdetails["username"];
    $password = $camdetails["password"];
    $streamid = $camdetails["streamid"];
    $stream = ($streamid == "1") ? "live.sdp" : "live".$streamid.".sdp";
    
-   date_default_timezone_set('Asia/Kolkata');
    $date = date('Y-m-d H:i:s'); 
    $formatdate = str_replace (" " , "_", $date);
    $formatdate = str_replace ("-" , "_", $formatdate);
@@ -53,7 +57,7 @@ function record_camera($camdetails, $recordduration, $recordir, $filestat, $file
    }
    
    //construct command for vlc
-   $command = "/usr/bin/cvlc ".$rtspurl." --run-time=".$recordduration." --sout=file/mp4:".$filenamefull." vlc://quit";
+   $command = $cvlcpath." ".$rtspurl." --run-time=".$recordduration." --sout=file/mp4:".$filenamefull." vlc://quit";
 
    echo $command."\n"; 
    exec($command);
@@ -95,15 +99,15 @@ function record_camera($camdetails, $recordduration, $recordir, $filestat, $file
 while (1)
 {
    //read config file
-   $filecfg = fopen("recordconfig.txt", "r") or exit("Unable to open file!..recordconfig.txt");
-   while(!feof($filecfg))
+   $configarr = read_config_file("recordconfig.txt");
+   
+   //check if recordvideo=true
+   if($configarr["recordvideo"] == "false")
    {
-      $line = fgets( $filecfg );
-      if($line == "")
-         continue;
-      $configarr[strtok($line, "=")] = rtrim(strtok("=")); 
+      //sleep for 5mins  to free the CPU
+      sleep(300);
+      continue;
    }
-   fclose($filecfg);
 
    //populate the schedule table
    //generate the list of the schedule cameras
@@ -133,7 +137,7 @@ while (1)
    // start of day that is i.e within an hour of recorddaystarttime else
    //we will wait for one day except if recordanytime is true
 
-   date_default_timezone_set('Asia/Kolkata');
+   date_default_timezone_set($configarr["timezone"]);
 
    $needtowait = 1;
    $camrecordingtime = $configarr["recordduration"] + 5;
@@ -206,7 +210,7 @@ while (1)
    //operate below 10% of max simltaneous recording
    $noofthreads = (count($record_schedule) < ((int)($simultrecordsessions * 0.9)+1)) ? count($record_schedule) : ((int)($simultrecordsessions * 0.9)+1);
 
-   echo "No of concurrent sessions...".$noofthreads."\n";
+   echo "No of concurrent record sessions...".$noofthreads."\n";
    echo "No of cameras to record...".count($record_schedule)."\n";
 
    $j = 0;

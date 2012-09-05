@@ -1,3 +1,6 @@
+# recording parameters
+recordvideo=true
+cvlcpath=/usr/bin/cvlc
 recordduration=20
 baserecorddir=/home/fedora/remotereality/thread/recordbase
 simultrecordsessions=5
@@ -7,3 +10,15 @@ recordnightstarttime=17
 recordnightendtime=21
 recordanytime=true
 recordfrequency=daily
+#image snapshot parameters
+imagesnapshot=true
+baseimagedir=/home/fedora/remotereality/thread/imagebase
+imagensnapshotdaytimestart=11
+imagensnapshotdaytimeend=12
+#time in night hours
+imagensnapshotnighttimestart=02
+imagensnapshotnighttimeend=04
+simultimagesessions=5
+timezone=Asia/Kolkata
+#camera ping url
+pingurl=setup/system/system.html
