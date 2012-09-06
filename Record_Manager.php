@@ -19,10 +19,10 @@
 require_once ('Thread.php');
 require_once ('util.php');
 
-function record_camera($camdetails, $recordduration, $recordir, $filestat, $filemedia) 
+function record_camera($configfilename, $camdetails, $recordduration, $recordir, $filestat, $filemedia) 
 {
 
-   $configarr = read_config_file("recordconfig.txt");
+   $configarr = read_config_file($configfilename);
    date_default_timezone_set($configarr["timezone"]);
    $cvlcpath = $configarr["cvlcpath"];
    //construct the rtsp url
@@ -30,6 +30,9 @@ function record_camera($camdetails, $recordduration, $recordir, $filestat, $file
    $password = $camdetails["password"];
    $streamid = $camdetails["streamid"];
    $stream = ($streamid == "1") ? "live.sdp" : "live".$streamid.".sdp";
+
+   // test vivek
+   $stream = "test1.mpg";
    
    $date = date('Y-m-d H:i:s'); 
    $formatdate = str_replace (" " , "_", $date);
@@ -49,7 +52,6 @@ function record_camera($camdetails, $recordduration, $recordir, $filestat, $file
    if($username == "notset")
    {
       $rtspurl = "rtsp://".$camdetails["ip"].":".$camdetails["port"]."/".$stream;
-      
    }
    else
    {
@@ -96,22 +98,13 @@ function record_camera($camdetails, $recordduration, $recordir, $filestat, $file
    
 
 //infinite loop
-while (1)
+function process_camera_recoding($configfilename, $recordschedulefilename, $statusfilename)
 {
    //read config file
-   $configarr = read_config_file("recordconfig.txt");
-   
-   //check if recordvideo=true
-   if($configarr["recordvideo"] == "false")
-   {
-      //sleep for 5mins  to free the CPU
-      sleep(300);
-      continue;
-   }
-
+   $configarr = read_config_file($configfilename);
    //populate the schedule table
    //generate the list of the schedule cameras
-   $filein = fopen("Record_Schedule.txt", "r") or exit("Unable to open file!...Record_Schedule.txt");
+   $filein = fopen($recordschedulefilename, "r") or exit("Unable to open file!...".$recordschedulefilename."\n");
    $i = 0;
 
    while(!feof($filein))
@@ -204,8 +197,8 @@ while (1)
    } // foreach record schdule val
 
    //Open a file to so that the child processes can write status of the output
-   $filestatus = fopen("Record_Status.txt", "w") or exit("Unable to open file!..Record_Status.txt");
-   $filemedia = fopen("Record_Media_Status.txt", "w") or exit("Unable to open file!..Record_Media_Status.txt");
+   $filestatus = fopen($statusfilename, "w") or exit("Unable to open file!..".$statusfilename."\n");
+   $filemedia = fopen("Recorddetail_".$statusfilename, "w") or exit("Unable to open file!..."."Recorddetails_".$statusfilename."\n");
 
    //operate below 10% of max simltaneous recording
    $noofthreads = (count($record_schedule) < ((int)($simultrecordsessions * 0.9)+1)) ? count($record_schedule) : ((int)($simultrecordsessions * 0.9)+1);
@@ -230,7 +223,7 @@ while (1)
       foreach ($temprecord_schedule as $scheduleval)
       {
          $threads[$index] = new Thread( 'record_camera' );
-         $threads[$index]->start( $scheduleval, $camrecordingtime, $recordbase."/".$scheduleval["cameraname"], $filestatus, $filemedia);
+         $threads[$index]->start( $configfilename, $scheduleval, $camrecordingtime, $recordbase."/".$scheduleval["cameraname"], $filestatus, $filemedia);
          ++$index;
       }
 
@@ -248,18 +241,13 @@ while (1)
                unset( $threads[$index] );
             }
          }  
-         echo "Sleeping before checking for empty threads...\n";
-         sleep(1); // Sleep for a second
+         echo "Record Manager Sleeping before checking for Video Recording empty threads...\n";
+         sleep(10); // Sleep for 10 secs
       } // end while empty
    }// end while count($record_schedule)
 
    fclose($filestatus);
    fclose($filemedia);
-
-   // Sleep for 10s to check next schedule
-   echo "Sleeping before the next schedule";
-   sleep( 10 ); 
-
-} //end while infinite loop
+}
 
 ?>

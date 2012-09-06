@@ -1,0 +1,78 @@
+# recording parameters
+# recordvideo {true, false} controls whether recording will happen
+recordvideo=true
+
+# cvlc we use clv for recording
+cvlcpath=/usr/bin/cvlc
+
+#recording duration in seconds
+recordduration=20
+
+#baserecorddir - path for video recording 
+#structure is baserecorddir/cameraname/cameraname_timestamp.mp4 
+baserecorddir=/home/fedora/remotereality/thread/recordbase
+
+#No of simultaneous recordings
+simultrecordsessions=5
+
+#day recording params. Start and End time in which recording will happen
+#Time is specified in Hours {01.. 24} - 24hour hour clock  (no mins, secs)
+#Start time should be less than End time
+recorddaystarttime=08
+recorddayendtime=20
+
+#night recording params. Start and End time in which recording will happen
+#Time is specified in Hours {01.. 24} - 24hour hour clock  (no mins, secs)
+#Start time should be less than End time
+recordnightstarttime=17
+recordnightendtime=21
+
+#recordanytime will override the start and end time and record any time of the
+#day and night
+recordanytime=true
+
+#recordfrequency this parameter is not yet used
+recordfrequency=daily
+
+
+#image snapshot parameters
+#The below param controls whether to take image snaptshot or not
+#values {true, false}
+imagesnapshot=true
+
+#baseimagedir - Store the image snapshot structure similar to video recording
+baseimagedir=/home/fedora/remotereality/thread/imagebase
+
+#Day time range in which snapshot will be take
+#Time is specified in Hours {01.. 24} - 24hour hour clock  (no mins, secs)
+#imagensnapshotdaytimestart should be less than imagensnapshotdaytimeend
+imagensnapshotdaytimestart=14
+imagensnapshotdaytimeend=16
+
+#Night time range in which snapshot will be take
+#Time is specified in Hours {01.. 24} - 24hour hour clock  (no mins, secs)
+#imagensnapshotnighttimestart should be less than imagensnapshotnighttimeend
+imagensnapshotnighttimestart=23
+imagensnapshotnighttimeend=24
+
+#No of simultaneous imagesnapshot sessions
+simultimagesessions=5
+
+#timeout if image is not accessible
+httpimagetimeout=10
+
+
+#Time zone to get the correct timestamps
+timezone=Asia/Kolkata
+
+
+#pingcamera - this will control whether to ping cameras
+#values {true, false}
+pingcamera=true
+#camera ping url
+pingurl=setup/system/system.html
+#ping timeout in seconds
+pingtimeout=10
+
+# Simulataneous Ping Sessions
+simultpingsessions=5

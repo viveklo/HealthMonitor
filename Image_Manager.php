@@ -19,19 +19,19 @@
 require_once ('Thread.php');
 require_once ('util.php');
 
-function image_capture_camera($camdetails, $imagedir, $filestat, $filemedia) 
+function image_capture_camera($configfilename, $camdetails, $imagedir, $filestat, $filemedia) 
 {
 
-   $configarr = read_config_file("recordconfig.txt");
+   $configarr = read_config_file($configfilename);
    date_default_timezone_set($configarr["timezone"]);
    $cvlcpath = $configarr["cvlcpath"];
-   //construct the rtsp url
+   $httpimagetimeout = $configarr["httpimagetimeout"];
+
+   //construct the http url
    $username = $camdetails["username"];
    $password = $camdetails["password"];
    $imageurl = $camdetails["imageurl"];
    $streamid = $camdetails["streamid"];
-   //$stream = ($streamid == "1") ? "live.sdp" : "live".$streamid.".sdp";
-   
    
    $date = date('Y-m-d H:i:s'); 
    $formatdate = str_replace (" " , "_", $date);
@@ -54,7 +54,8 @@ function image_capture_camera($camdetails, $imagedir, $filestat, $filemedia)
    
    echo "Get image from...".$httpurl."\n";
    //get the image
-   $imagecontent = file_get_contents($httpurl);
+   $ctxt = stream_context_create(array('http'=>array('timeout'=>$httpimagetimeout)));
+   $imagecontent = file_get_contents($httpurl, false, $ctxt);
 
    $imagetimestampend = date('Y-m-d H:i:s');
 
@@ -69,9 +70,19 @@ function image_capture_camera($camdetails, $imagedir, $filestat, $filemedia)
    }
    else
    {
-      $camdetails["status"] = "false";
-      unlink($filenamefull);
-      echo $httpurl." is not reachable \n";
+      //Check if not reachable or reachable butnot able to access th URL
+      if(empty($http_response_header))
+      {
+         // not reachable
+         $camdetails["status"] = "false";
+         echo "Image capture".$httpurl." is not reachable \n";
+      }
+      else
+      {
+         $camdetails["status"] = "partial";
+         echo "Image capture".$httpurl." reachable but with problem\n";
+      }
+
       echo "Image Capture failed \n";
    }
 
@@ -84,28 +95,18 @@ function image_capture_camera($camdetails, $imagedir, $filestat, $filemedia)
                      $camdetails["port"]." ".
                      $camdetails["username"]." ".
                      $camdetails["password"]." ".
-                     $camdetails["streamid"]." ".
                      $camdetails["status"]."\n");
 }
    
 
-//infinite loop
-while (1)
+function process_camera_image_capture($configfilename, $imagechedulefilename, $statusfilename) 
 {
    //read config file
-   $configarr = read_config_file("recordconfig.txt");
-   
-   //check if recordvideo=true
-   if($configarr["imagesnapshot"] == "false")
-   {
-      //sleep for 5mins  to free the CPU
-      sleep(300);
-      continue;
-   }
+   $configarr = read_config_file($configfilename);
 
    //populate the schedule table
    //generate the list of the schedule cameras
-   $filein = fopen("Image_Schedule.txt", "r") or exit("Unable to open file!...Image_Schedule.txt");
+   $filein = fopen($imagechedulefilename, "r") or exit("Unable to open file!...".$imagechedulefilename."\n");
    $i = 0;
 
    while(!feof($filein))
@@ -127,10 +128,6 @@ while (1)
    }//end while feof
    fclose($filein);
 
-
-   //Recording is assumed to happen daily, hence we will start at 
-   // start of day that is i.e within an hour of recorddaystarttime else
-   //we will wait for one day except if recordanytime is true
 
    date_default_timezone_set($configarr["timezone"]);
 
@@ -162,7 +159,7 @@ while (1)
          echo "Current time not within image capture range....".date('H:i')."\n";
          echo "Waiting...\n";
          sleep(300);
-      } // currenttime > recordstarttim
+      } // currenttime > iamgestarttim
    } //while needtowait
 
    $imagebase = $configarr["baseimagedir"];
@@ -180,13 +177,13 @@ while (1)
          }//endif mkdir
          umask($old);
       }//end if is_dir
-   } // foreach record schdule val
+   } // foreach image schdule val
 
    //Open a file to so that the child processes can write status of the output
-   $filestatus = fopen("Image_Status.txt", "w") or exit("Unable to open file!..Image_Status.txt");
-   $filemedia = fopen("Image_Media_Status.txt", "w") or exit("Unable to open file!..Image_Media_Status.txt");
+   $filestatus = fopen($statusfilename, "w") or exit("Unable to open file!..".$statusfilename."\n");
+   $filemedia = fopen("Imagedetails_".$statusfilename, "w") or exit("Unable to open file!..."."Imagedetails_".$statusfilename);
 
-   //operate below 10% of max simltaneous recording
+   //operate below 10% of max simltaneous sessions
    $noofthreads = (count($image_schedule) < ((int)($simultimagesessions * 0.9)+1)) ? count($image_schedule) : ((int)($simultimagesessions * 0.9)+1);
 
    echo "No of concurrent image sessions...".$noofthreads."\n";
@@ -209,12 +206,12 @@ while (1)
       foreach ($tempimage_schedule as $scheduleval)
       {
          $threads[$index] = new Thread( 'image_capture_camera' );
-         $threads[$index]->start( $scheduleval, $imagebase."/".$scheduleval["cameraname"], $filestatus, $filemedia);
+         $threads[$index]->start( $configfilename, $scheduleval, $imagebase."/".$scheduleval["cameraname"], $filestatus, $filemedia);
          ++$index;
       }
 
       // Let the cpu do its work till image capture is done
-      sleep(1);   
+      sleep(5);   
       // wait for all the threads to finish
       $index = 0;
 
@@ -227,18 +224,14 @@ while (1)
                unset( $threads[$index] );
             }
          }  
+         echo "Image Manager Sleeping before checking for Image Capturing empty threads...\n";
+         sleep(5); // Sleep for 10 secs
       } // end while empty
-   }// end while count($record_schedule)
+   }// end while count($image_schedule)
 
    fclose($filestatus);
    fclose($filemedia);
 
-   // Sleep for 10s to check next schedule
-   echo "Sleeping before the next schedule";
-   sleep( 10 ); 
-
-} //end while infinite loop
+}
 
 ?>
-
-		

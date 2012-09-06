@@ -1,0 +1,3 @@
+camera1 vivotek 120.63.187.196 8011 notset notset setup/system/system1.html
+camera2 vivotek 120.63.187.196 8011 notset notset setup/system/system.html
+camera3 vivotek 121.63.187.196 8011 notset notset setup/system/system.html

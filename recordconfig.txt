@@ -1,5 +1,5 @@
 # recording parameters
-recordvideo=true
+recordvideo=false
 cvlcpath=/usr/bin/cvlc
 recordduration=20
 baserecorddir=/home/fedora/remotereality/thread/recordbase
